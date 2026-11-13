@@ -6,33 +6,42 @@
 
 ### 数据来源
 
-199 部作品来自作品库 JSON，由脚本生成到 `src/data/anime.ts`：
+199 部作品来自作品库 JSON，生成到 `src/data/anime.ts`，分三步：
 
 ```bash
-node scripts/build-anime.mjs
+node scripts/build-anime.mjs    # 从作品库 JSON 生成基础列表（名字 + 标签）
+node scripts/apply-baike.mjs    # 写入百度百科精确词条路径（baikePath）
+node scripts/apply-fixes27.mjs  # 人工修正 27 条 + 按百科官方名改名
 ```
 
-**不要直接改 `src/data/anime.ts`**，它会被重新生成覆盖。要改某个条目的百科链接，
-改 `scripts/build-anime.mjs` 里的 `ALIAS` 对象，然后重新生成。
+**不要直接改 `src/data/anime.ts`**，它会被重新生成覆盖。
+
+作品库源文件按这个顺序查找：
+
+1. 环境变量 `ANIME_SOURCE` 指定的路径
+2. `content/anime-source.json`（默认，已被 `.gitignore` 忽略，不入库）
+
+找不到会直接报错退出，不会生成空数据。
 
 ### 修改作品列表
 
-直接改作品库 JSON 后重新运行生成脚本。如果想在博客里单独调整，可以改
-`scripts/build-anime.mjs` 顶部的 `SRC` 路径指向新文件。
+改作品库 JSON（`content/anime-source.json`）后重新跑上面三步。想临时换源：
+
+```bash
+ANIME_SOURCE=/path/to/works.json node scripts/build-anime.mjs
+```
 
 ### 百科链接
 
-每部作品有两个链接：
+每部作品只有一个链接：**百科** → 百度百科。
 
-- **萌** → 萌娘百科 `https://zh.moegirl.org.cn/<条目名>`
-- **百** → 百度百科 `https://baike.baidu.com/item/<条目名>`
+优先用 `baikePath` 精确路径（形如 `/item/冰菓/5650507`，带数字 ID，避免落到消歧义页）；
+没有 `baikePath` 的条目回退到站内搜索页。
 
-默认用作品名当条目名。名字对不上的（如 `love live` → `LoveLive!`），在
-`build-anime.mjs` 的 `ALIAS` 里加一条：
+想手工指定某部的条目，改 `scripts/apply-fixes27.mjs` 里的 `FIXES` 对象（按序号）
+或 `RENAMES` 对象（按原名改官方名），然后重跑后两步。
 
-```js
-'love live': { moe: 'LoveLive!', baike: 'LoveLive!' },
-```
+名字对不上的（如 `love live` → `LoveLive!`），在 `build-anime.mjs` 的 `ALIAS` 里加一条。
 
 ### 页面功能
 
@@ -62,7 +71,7 @@ export const tracks: Track[] = [
 
 3. `npm run build`
 
-**歌单为空时播放器完全不渲染**（按钮都不会出现），所以没放歌之前不用担心。
+**歌单为空时播放器按钮仍然显示**（右下角），点开会提示如何添加歌曲。这样功能可见、可发现。
 
 ### 支持的字段
 
